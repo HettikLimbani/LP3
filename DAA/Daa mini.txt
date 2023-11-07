@@ -1,0 +1,116 @@
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+public class MatrixMultiplication {
+ // Function to perform regular matrix multiplication
+ public static int[][] multiply(int[][] matrixA, int[][] matrixB) {
+ int rowsA = matrixA.length;
+ int colsA = matrixA[0].length;
+ int colsB = matrixB[0].length;
+ int[][] result = new int[rowsA][colsB];
+ for (int i = 0; i < rowsA; i++) {
+ for (int j = 0; j < colsB; j++) {
+ for (int k = 0; k < colsA; k++) {
+ result[i][j] += matrixA[i][k] * matrixB[k][j];
+ }
+ }
+ }
+ return result;
+ }
+ // Function to perform matrix multiplication with multithreading (one thread per row)
+ public static int[][] multiplyWithThreadsPerRow(int[][] matrixA, int[][] matrixB, int numThreads) 
+{
+ int rowsA = matrixA.length;
+ int colsB = matrixB[0].length;
+ int[][] result = new int[rowsA][colsB];
+ ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+ for (int i = 0; i < rowsA; i++) {
+ final int rowIdx = i;
+ executor.submit(() -> {
+ for (int j = 0; j < colsB; j++) {
+ for (int k = 0; k < matrixB.length; k++) {
+ result[rowIdx][j] += matrixA[rowIdx][k] * matrixB[k][j];
+ }
+ }
+ });
+ }
+ executor.shutdown();
+ try {
+ executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+ } catch (InterruptedException e) {
+ e.printStackTrace();
+ }
+ return result;
+ }
+ // Function to perform matrix multiplication with multithreading (one thread per cell)
+ public static int[][] multiplyWithThreadsPerCell(int[][] matrixA, int[][] matrixB, int numThreads) {
+ int rowsA = matrixA.length;
+ int colsB = matrixB[0].length;
+ int[][] result = new int[rowsA][colsB];
+ ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+ for (int i = 0; i < rowsA; i++) {
+ for (int j = 0; j < colsB; j++) {
+ final int rowIdx = i;
+ final int colIdx = j;
+ executor.submit(() -> {
+ for (int k = 0; k < matrixB.length; k++) {
+ result[rowIdx][colIdx] += matrixA[rowIdx][k] * matrixB[k][colIdx];
+ }
+ });
+ }
+ }
+ executor.shutdown();
+ try {
+ executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+ } catch (InterruptedException e) {
+ e.printStackTrace();
+ }
+ return result;
+ }
+ public static void main(String[] args) {
+ // Example matrices
+ int[][] matrixA = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+ int[][] matrixB = {{9, 8, 7}, {6, 5, 4}, {3, 2, 1}};
+ // Regular matrix multiplication
+ int[][] resultRegular = multiply(matrixA, matrixB);
+ System.out.println("Regular Matrix Multiplication Result:");
+ printMatrix(resultRegular);
+ // Multithreaded matrix multiplication (one thread per row)
+ int numThreadsPerRow = 3;
+ int[][] resultThreadsPerRow = multiplyWithThreadsPerRow(matrixA, matrixB, 
+numThreadsPerRow);
+ System.out.println("Multithreaded Matrix Multiplication (One Thread per Row) Result:");
+ printMatrix(resultThreadsPerRow);
+ // Multithreaded matrix multiplication (one thread per cell)
+ int numThreadsPerCell = matrixA.length * matrixB[0].length;
+ int[][] resultThreadsPerCell = multiplyWithThreadsPerCell(matrixA, matrixB, 
+numThreadsPerCell);
+ System.out.println("Multithreaded Matrix Multiplication (One Thread per Cell) Result:");
+ printMatrix(resultThreadsPerCell);
+ }
+ // Utility function to print a matrix
+ public static void printMatrix(int[][] matrix) {
+ for (int i = 0; i < matrix.length; i++) {
+ for (int j = 0; j < matrix[0].length; j++) {
+ System.out.print(matrix[i][j] + " ");
+ }
+ System.out.println();
+ }
+ }
+}
+
+
+Output:
+Regular Matrix Multiplication Result:
+30 24 18
+84 69 54
+138 114 90
+Multithreaded Matrix Multiplication (One Thread per Row) Result: 
+30 24 18
+84 69 54
+138 114 90
+Multithreaded Matrix Multiplication (One Thread per Cell) Result: 
+30 24 18
+84 69 54
+138 114 90
